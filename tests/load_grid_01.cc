@@ -19,6 +19,7 @@
 
 #include <fstream>
 
+#include "gmsh_api.h"
 #include "tests.h"
 
 auto
@@ -29,17 +30,14 @@ main() -> int
   // Create a 2D triangulation
   dealii::Triangulation<2, 3> triangulation;
 
-  // Create GridIn object
-  dealii::GridIn<2, 3> grid_in;
-  grid_in.attach_triangulation(triangulation);
-
   // Open and read the mesh file
   std::string mesh_file = SOURCE_DIR "/../grids/test_grid_1.msh";
-  deallog << "Reading mesh from file: " << mesh_file << std::endl;
 
-  grid_in.read_msh(mesh_file);
+  GMSH::read_msh(triangulation, mesh_file);
 
   // Output the number of cells and vertices
   deallog << "Number of cells: " << triangulation.n_active_cells() << std::endl;
   deallog << "Number of vertices: " << triangulation.n_vertices() << std::endl;
+
+  return 0;
 }
