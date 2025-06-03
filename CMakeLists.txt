@@ -1,0 +1,185 @@
+# # ---------------------------------------------------------------------
+# # Copyright (C) 2024 by Luca Heltai
+# # This file is part of the bare-dealii-app application, based on the
+# # deal.II library.
+# # The bare-dealii-app application is free software; you can use it,
+# # redistribute it, and/or modify it under the terms of the Apache-2.0 License
+# # WITH LLVM-exception as published by the Free Software Foundation; either
+# # version 3.0 of the License, or (at your option) any later version.
+# # The full text of the license can be found in the file LICENSE.md
+# # at the top level of the bare-dealii-app distribution.
+# # ---------------------------------------------------------------------
+#
+# CMake script for large project, with possibly many executables
+# and a library of objects
+#
+# The structure of the directory is assumed to be:
+# ./source: containing implementations and no files with "int main()"
+# ./include: containing all class declarations
+# ./execs: containing all files with "int main()", one per executable
+# ./tests: containing pairs of files: test.cc/test.output to test
+# ./gtests: containing gtest unit tests
+# #
+
+# Set the name of the project and target
+# If your application follows the structure above, you don't need to
+# specify anything else.
+SET(_library_target bare)
+
+# ###########################################################
+# Normally you shouldn't need to change anything below.
+# ###########################################################
+# Declare all source files the target consists of:
+file(GLOB _files source/*cc include/*.h)
+file(GLOB _execs execs/*cc)
+
+INCLUDE_DIRECTORIES(include)
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+
+FIND_PACKAGE(deal.II 9.2 REQUIRED
+  HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR})
+DEAL_II_INITIALIZE_CACHED_VARIABLES()
+
+PROJECT(${_library_target})
+DEAL_II_INITIALIZE_CACHED_VARIABLES()
+OPTION(ENABLE_DEAL_II_APP_TESTING
+  "Enable deal.II style tests in this application." ON)
+OPTION(ENABLE_GOOGLE_TESTING
+  "Enable googletest style tests in this application." ON)
+OPTION(ENABLE_LIKWID
+  "Enable Likwid in this application." OFF)
+OPTION(ENABLE_1D
+  "Enable 1D targets." ON)
+OPTION(ENABLE_2D
+  "Enable 2D targets." ON)
+OPTION(ENABLE_3D
+  "Enable 3D targets." ON)
+
+# Create a list called DIMENSIONS with 1 2 3
+SET(DIMENSIONS 1 2 3)
+
+# Remove dimensions from the list if they are disabled
+if(NOT ENABLE_1D)
+  list(REMOVE_ITEM DIMENSIONS 1)
+endif()
+
+if(NOT ENABLE_2D)
+  list(REMOVE_ITEM DIMENSIONS 2)
+endif()
+
+if(NOT ENABLE_3D)
+  list(REMOVE_ITEM DIMENSIONS 3)
+endif()
+
+if(ENABLE_LIKWID)
+  FIND_PACKAGE(likwid)
+endif(ENABLE_LIKWID)
+
+IF(likwid_FOUND)
+  message("-- Likwid found")
+  message("-- Includes: ${LIKWID_INCLUDE_DIR}")
+  message("-- Lib: ${LIKWID_LIBRARY}")
+  include_directories(${LIKWID_INCLUDE_DIR})
+ENDIF()
+
+# We add one library and one target for each type of deal.II library
+# we found. If you compiled deal.II with both Release and Debug
+# mode, this will generate both Release and Debug programs for you.
+# The debug library and program are postfixed with ".g"
+SET(_d2_build_types "Release;Debug")
+SET(Release_postfix "")
+SET(Debug_postfix ".g")
+
+FOREACH(_build_type ${_d2_build_types})
+  # Postfix to use everywhere
+  SET(_p "${${_build_type}_postfix}")
+
+  # Only build this type, if deal.II was compiled with it.
+  IF(CMAKE_BUILD_TYPE MATCHES "${_build_type}" AND
+    DEAL_II_BUILD_TYPE MATCHES "${_build_type}")
+    MESSAGE("-- Found ${_build_type} version of deal.II.")
+
+    STRING(TOUPPER "${_build_type}" _BUILD_TYPE)
+
+    # Setup library
+    FOREACH(_dim ${DIMENSIONS})
+      SET(_lib "${_library_target}_${_dim}d${_p}")
+      MESSAGE("-- Configuring library ${_lib}")
+
+      ADD_LIBRARY(${_lib} SHARED ${_files})
+      TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC DEAL_DIMENSION=${_dim})
+
+      IF(likwid_FOUND)
+        TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC LIKWID_PERFMON)
+        TARGET_LINK_LIBRARIES(${_lib} ${LIKWID_LIBRARY})
+        MESSAGE("-- Configuring  ${_lib} with LIKWID")
+      endif()
+
+      DEAL_II_SETUP_TARGET(${_lib} ${_BUILD_TYPE})
+      SET(TEST_LIBRARIES_${_BUILD_TYPE} ${_lib})
+
+      # Setup executables
+      FOREACH(__exec ${_execs})
+        get_filename_component(exec_name ${__exec} NAME_WE)
+        MESSAGE("-- Configuring executable ${exec_name}_${_dim}d${$_p}")
+        SET(_exe "${exec_name}_${_dim}d${${_build_type}_postfix}")
+        MESSAGE("-- Configuring executable ${_exe}")
+        ADD_EXECUTABLE(${_exe} ${__exec})
+        TARGET_COMPILE_DEFINITIONS(${_exe} PUBLIC DEAL_II_DIMENSION=${_dim})
+        TARGET_LINK_LIBRARIES(${_exe} ${_lib})
+
+        IF(likwid_FOUND)
+          TARGET_COMPILE_DEFINITIONS(${_exe} PUBLIC LIKWID_PERFMON)
+          TARGET_LINK_LIBRARIES(${_exe} ${LIKWID_LIBRARY})
+          MESSAGE("-- Configuring  ${_exe} with LIKWID")
+        endif()
+
+        DEAL_II_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
+      ENDFOREACH()
+    ENDFOREACH()
+  ENDIF()
+ENDFOREACH()
+
+# Deal.II style testing
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests AND ENABLE_DEAL_II_APP_TESTING)
+  ADD_SUBDIRECTORY(tests)
+ENDIF()
+
+# Google test style testing
+IF(ENABLE_GOOGLE_TESTING)
+  find_package(GTest)
+
+  if(GTest_FOUND)
+    ADD_SUBDIRECTORY(gtests)
+  else()
+    MESSAGE(WARNING "GTest library not found. Tests will not be compiled!")
+  endif()
+ENDIF()
+
+# Doxygen
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+  find_package(Doxygen)
+
+  if(DOXYGEN_FOUND)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+    add_custom_target(doc
+      ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMENT "Generating API documentation with Doxygen" VERBATIM)
+    MESSAGE("-- Configured Doxygen")
+  endif(DOXYGEN_FOUND)
+elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile)
+  find_package(Doxygen)
+
+  if(DOXYGEN_FOUND)
+    add_custom_target(doc
+      ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating API documentation with Doxygen" VERBATIM)
+    MESSAGE("-- Configured Doxygen")
+  endif(DOXYGEN_FOUND)
+endif()
+
+add_custom_target(indent ./scripts/indent WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+ENABLE_TESTING()

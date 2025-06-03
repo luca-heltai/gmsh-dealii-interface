@@ -1,0 +1,22 @@
+name: Indent
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  indent:
+
+    runs-on: ubuntu-latest
+    container: 
+      image: dealii/dealii:v9.6.0-jammy
+      options: --user root
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Check indentation
+      run: |
+        git config --global --add safe.directory /__w/bare-dealii-app/bare-dealii-app
+        ./scripts/check_indentation.sh
