@@ -1,0 +1,29 @@
+Info    : Reading '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_1.msh'...
+Info    : 9 entities
+Info    : 3 partitions
+Info    : 7 partition entities
+Info    : 55 nodes
+Info    : 82 elements
+Info    : Done reading '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_1.msh'
+Info    : Reading '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_2.msh'...
+Info    : 9 entities
+Info    : 3 partitions
+Info    : 7 partition entities
+Info    : 56 nodes
+Info    : 82 elements
+Info    : Done reading '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_2.msh'
+Info    : Reading '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_3.msh'...
+Info    : 9 entities
+Info    : 3 partitions
+Info    : 7 partition entities
+Info    : 54 nodes
+Info    : 82 elements
+Info    : Done reading '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_3.msh'
+Info    : Removing duplicate mesh nodes...
+Info    : Found 21 duplicate nodes 
+Info    : Removed 21 duplicate mesh nodes
+Info    : Done removing duplicate mesh nodes
+Info    : Writing '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_merged.msh'...
+Info    : Done writing '/home/raksha/gmsh-dealii-interface/tests/../grids/new_meshes/test_grid_2_merged.msh'
+DEAL::Number of vertices: 188
+DEAL::Number of cells: 246

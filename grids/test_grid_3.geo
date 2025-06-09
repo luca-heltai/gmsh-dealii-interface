@@ -31,4 +31,3 @@ BooleanDifference{ Surface{1}; Delete; }{ Surface{2}; Delete; }
 
 // Assign physical group to final surface
 Physical Surface("L_with_hole") = {1};
-

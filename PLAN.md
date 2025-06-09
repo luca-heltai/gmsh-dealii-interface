@@ -4,7 +4,7 @@ Serial version (currently working):
 
 - [X] create a simple grid with gmsh (.geo file)
 - [X] make a (single) `.gmsh` file with gmsh
-- [ ] read the `.gmsh` file with gmsh using the existing gmsh API in dealii
+- [x] read the `.gmsh` file with gmsh using the existing gmsh API in dealii
 
 Parallel version (not working yet):
 
