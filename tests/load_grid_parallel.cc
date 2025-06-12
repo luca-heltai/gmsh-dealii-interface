@@ -3,12 +3,13 @@
 #include <deal.II/distributed/fully_distributed_tria.h>
 #include <deal.II/grid/grid_out.h>
 #include "gmsh_api_parallel.h"
-
+#include "tests.h"
 using namespace dealii;
 
 int main(int argc, char **argv)
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+  MPILogInitAll mpilog;
   MPI_Comm mpi_comm = MPI_COMM_WORLD;
 
   int rank, size;
@@ -25,19 +26,11 @@ int main(int argc, char **argv)
 
   // Ordered output
 
-  // std::cout << "Rank " << rank << " owns " << tria.n_active_cells()
-  //             << " cells and " << tria.n_vertices() << " vertices." << std::endl;
+
+   deallog << "Rank " << rank << " owns " << tria.n_active_cells()
+               << " cells and " << tria.n_vertices() << " vertices." << std::endl;
 
 
-  for (unsigned int r = 0; r < static_cast<unsigned int>(size); ++r)
-{
-  if (rank == r)
-  {
-    std::cout << "Rank " << rank << " owns " << tria.n_active_cells()
-              << " cells and " << tria.n_vertices() << " vertices." << std::endl;
-  }
-  MPI_Barrier(MPI_COMM_WORLD);
-}
 
 
   return 0;
