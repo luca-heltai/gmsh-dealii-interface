@@ -1,15 +1,19 @@
-// by Raksha Devi 
+// by Raksha Devi
 
 #ifndef GMSH_API_PARALLEL_H
 #define GMSH_API_PARALLEL_H
 
 #include <deal.II/base/config.h>
+
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/numbers.h>
 #include <deal.II/base/point.h>
+
+#include <deal.II/distributed/fully_distributed_tria.h>
+
 #include <deal.II/grid/cell_id.h>
 #include <deal.II/grid/tria.h>
-#include <deal.II/distributed/fully_distributed_tria.h>
+#include <deal.II/grid/tria_description.h>
 
 #ifdef DEAL_II_GMSH_WITH_API
 #  include <gmsh.h>
@@ -26,15 +30,16 @@ namespace GMSH
 {
 #ifdef DEAL_II_GMSH_WITH_API
   template <int dim, int spacedim>
-  void read_parallel_msh(
+  void
+  read_parallel_msh(
     dealii::parallel::fullydistributed::Triangulation<dim, spacedim> &tria,
-    const MPI_Comm &mpi_comm,
+    const MPI_Comm                                                   &mpi_comm,
     const std::string &file_prefix = "mesh_",
     const std::string &file_suffix = ".msh")
   {
     using namespace dealii;
 
-    const unsigned int rank = Utilities::MPI::this_mpi_process(mpi_comm);
+    const unsigned int rank  = Utilities::MPI::this_mpi_process(mpi_comm);
     const std::string  fname = file_prefix + std::to_string(rank) + file_suffix;
 
     gmsh::initialize();
@@ -42,15 +47,30 @@ namespace GMSH
     gmsh::open(fname);
 
     AssertThrow(gmsh::model::getDimension() == dim,
-                ExcMessage("You are trying to read a gmsh file with dimension " +
-                           std::to_string(gmsh::model::getDimension()) +
-                           " into a grid of dimension " + std::to_string(dim)));
+                ExcMessage(
+                  "You are trying to read a gmsh file with dimension " +
+                  std::to_string(gmsh::model::getDimension()) +
+                  " into a grid of dimension " + std::to_string(dim)));
 
     std::vector<std::size_t> node_tags;
-    std::vector<double> coord, parametricCoord;
+    std::vector<double>      coord, parametricCoord;
     gmsh::model::mesh::getNodes(node_tags, coord, parametricCoord);
 
-    std::vector<Point<spacedim>> vertices(node_tags.size());
+
+    // For fully distributed triangulations, we need to construct a
+    // Triangulation description object:
+    TriangulationDescription::Description<dim, spacedim>
+      triangulation_description;
+
+    triangulation_description.comm = mpi_comm;
+
+    auto &cells    = triangulation_description.coarse_cells;
+    auto &vertices = triangulation_description.coarse_cell_vertices;
+    auto &coarse_cell_ids =
+      triangulation_description.coarse_cell_index_to_coarse_cell_id;
+
+
+    vertices.resize(node_tags.size());
     for (unsigned int i = 0; i < node_tags.size(); ++i)
       for (unsigned int d = 0; d < spacedim; ++d)
         vertices[i][d] = coord[i * 3 + d];
@@ -58,44 +78,48 @@ namespace GMSH
     std::vector<std::pair<int, int>> entities;
     gmsh::model::getEntities(entities);
 
-    std::vector<CellData<dim>> cells;
-    SubCellData subcelldata;
 
     for (const auto &e : entities)
-    {
-      const int entity_dim = e.first;
-      const int entity_tag = e.second;
-
-      if (entity_dim == dim)
       {
-        std::vector<int> element_types;
-        std::vector<std::vector<std::size_t>> element_ids, element_nodes;
-        gmsh::model::mesh::getElements(element_types, element_ids, element_nodes, entity_dim, entity_tag);
+        const int entity_dim = e.first;
+        const int entity_tag = e.second;
 
-        for (unsigned int i = 0; i < element_types.size(); ++i)
-        {
-          const unsigned int n_vertices = element_nodes[i].size() / element_ids[i].size();
-          for (unsigned int j = 0; j < element_ids[i].size(); ++j)
+        if (entity_dim == dim)
           {
-            CellData<dim> cell;
-            cell.material_id = 0;
-            for (unsigned int v = 0; v < n_vertices; ++v)
-              cell.vertices[v] = element_nodes[i][j * n_vertices + v] - 1;
-            cells.push_back(cell);
+            std::vector<int>                      element_types;
+            std::vector<std::vector<std::size_t>> element_ids, element_nodes;
+            gmsh::model::mesh::getElements(element_types,
+                                           element_ids,
+                                           element_nodes,
+                                           entity_dim,
+                                           entity_tag);
+
+            for (unsigned int i = 0; i < element_types.size(); ++i)
+              {
+                const unsigned int n_vertices =
+                  element_nodes[i].size() / element_ids[i].size();
+                for (unsigned int j = 0; j < element_ids[i].size(); ++j)
+                  {
+                    CellData<dim> cell;
+                    cell.material_id = 0;
+                    for (unsigned int v = 0; v < n_vertices; ++v)
+                      cell.vertices[v] =
+                        element_nodes[i][j * n_vertices + v] - 1;
+                    cells.push_back(cell);
+                    coarse_cell_ids.push_back(element_ids[i][j] - 1);
+                  }
+              }
           }
-        }
       }
-    }
 
     // Create the triangulation without the partitioning argument
-    tria.create_triangulation(vertices, cells, subcelldata);
+    tria.create_triangulation(triangulation_description);
 
     gmsh::clear();
     gmsh::finalize();
   }
 #endif
-}
+} // namespace GMSH
 
 DEAL_II_NAMESPACE_CLOSE
 #endif // DEAL_II_GMSH_WITH_API
-
