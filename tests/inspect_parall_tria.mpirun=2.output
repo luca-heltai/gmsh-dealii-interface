@@ -1,0 +1,13 @@
+
+DEAL:0::Coarse cells: 1
+DEAL:0::Coarse vertices: 4
+DEAL:0::Coarse cell index to coarse cell id: 1
+DEAL:0::Cell infos: 4
+DEAL:0::Rank 0 owns 52 cells and 68 vertices.
+
+DEAL:1::Coarse cells: 1
+DEAL:1::Coarse vertices: 4
+DEAL:1::Coarse cell index to coarse cell id: 1
+DEAL:1::Cell infos: 4
+DEAL:1::Rank 1 owns 52 cells and 68 vertices.
+
