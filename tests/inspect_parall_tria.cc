@@ -29,7 +29,10 @@ main(int argc, char **argv)
 
   parallel::distributed::Triangulation<2, 2> distributed_tria(mpi_comm);
   GridGenerator::hyper_cube(distributed_tria, -1, 1);
-  distributed_tria.refine_global(3);
+  distributed_tria.refine_global(4);
+
+  deallog << "After 4 refinements: " 
+        << distributed_tria.n_global_active_cells() << " cells" << std::endl;
 
   auto description =
     TriangulationDescription::Utilities::create_description_from_triangulation(

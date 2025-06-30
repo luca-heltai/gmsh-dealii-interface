@@ -2,7 +2,7 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/distributed/fully_distributed_tria.h>
 #include <deal.II/grid/grid_out.h>
-#include "gmsh_api_parallel1.h"
+#include "gmsh_api_parallel.h"
 #include "tests.h"
 using namespace dealii;
 
@@ -22,8 +22,9 @@ int main(int argc, char **argv)
   // Read the partitioned mesh 
   GMSH::read_parallel_msh(tria,
                           mpi_comm,
-                          SOURCE_DIR "/../grids/meshes/unpartitioned_t21_");
+                          SOURCE_DIR "/../grids/add_meshes/unit-square_");
 
+                          
   // Ordered output
 
 
