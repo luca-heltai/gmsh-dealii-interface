@@ -28,11 +28,10 @@ main(int argc, char **argv)
   parallel::fullydistributed::Triangulation<2, 2> tria(mpi_comm);
 
   parallel::distributed::Triangulation<2, 2> distributed_tria(mpi_comm);
-  GridGenerator::hyper_cube(distributed_tria, -1, 1);
-  distributed_tria.refine_global(4);
+  GridGenerator::subdivided_hyper_cube(distributed_tria, 16, -1, 1);
 
-  deallog << "After 4 refinements: " 
-        << distributed_tria.n_global_active_cells() << " cells" << std::endl;
+  deallog << "After 4 refinements: " << distributed_tria.n_global_active_cells()
+          << " cells" << std::endl;
 
   auto description =
     TriangulationDescription::Utilities::create_description_from_triangulation(
@@ -47,7 +46,8 @@ main(int argc, char **argv)
           << std::endl
           << "Coarse cell index to coarse cell id: "
           << description.coarse_cell_index_to_coarse_cell_id.size() << std::endl
-          << "Cell infos: " << description.cell_infos.size() << std::endl;
+          << "Cell infos: " << description.cell_infos.size() << std::endl
+          << "Cell infos[0]: " << description.cell_infos[0].size() << std::endl;
 
   deallog << "Rank " << rank << " owns " << tria.n_active_cells()
           << " cells and " << tria.n_vertices() << " vertices." << std::endl;
