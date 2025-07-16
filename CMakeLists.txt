@@ -109,6 +109,7 @@ FOREACH(_build_type ${_d2_build_types})
 
       ADD_LIBRARY(${_lib} SHARED ${_files})
       TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC DEAL_DIMENSION=${_dim})
+      TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
       IF(likwid_FOUND)
         TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC LIKWID_PERFMON)

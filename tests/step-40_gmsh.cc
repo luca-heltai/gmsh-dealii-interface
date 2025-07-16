@@ -11,7 +11,7 @@
  * LICENSE.md and CONTRIBUTING.md at the top level directory of deal.II.
  *
  * ------------------------------------------------------------------------
-*/
+ */
 
 // Step 40 on partitioned meshes.
 // Modifications with respect to original step-40:
@@ -43,6 +43,7 @@ namespace LA
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/utilities.h>
 
+#include <deal.II/distributed/fully_distributed_tria.h>
 #include <deal.II/distributed/grid_refinement.h>
 #include <deal.II/distributed/tria.h>
 
@@ -51,7 +52,9 @@ namespace LA
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_simplex_p.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_fe.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
@@ -69,15 +72,11 @@ namespace LA
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include <deal.II/distributed/fully_distributed_tria.h>
-#include <deal.II/fe/fe_simplex_p.h>
-#include <deal.II/fe/mapping_fe.h>
-
 #include <fstream>
 #include <iostream>
 
-#include "tests.h"
 #include "gmsh_api_parallel.h"
+#include "tests.h"
 
 namespace Step40
 {
@@ -86,27 +85,32 @@ namespace Step40
   {
   public:
     LaplaceProblem();
-    void run();
+    void
+    run();
 
   private:
-    void setup_system();
-    void assemble_system();
-    void solve();
-    void output_results() const;
+    void
+    setup_system();
+    void
+    assemble_system();
+    void
+    solve();
+    void
+    output_results() const;
 
-    MPI_Comm mpi_communicator;
-    MappingFE<dim, dim> mapping;
+    MPI_Comm                                       mpi_communicator;
+    MappingFE<dim, dim>                            mapping;
     parallel::fullydistributed::Triangulation<dim> triangulation;
-    FE_SimplexP<dim> fe;
-    DoFHandler<dim> dof_handler;
+    FE_SimplexP<dim>                               fe;
+    DoFHandler<dim>                                dof_handler;
 
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
 
     AffineConstraints<double> constraints;
-    LA::MPI::SparseMatrix system_matrix;
-    LA::MPI::Vector locally_relevant_solution;
-    LA::MPI::Vector system_rhs;
+    LA::MPI::SparseMatrix     system_matrix;
+    LA::MPI::Vector           locally_relevant_solution;
+    LA::MPI::Vector           system_rhs;
   };
 
   template <int dim>
@@ -119,80 +123,98 @@ namespace Step40
   {}
 
   template <int dim>
-  void LaplaceProblem<dim>::setup_system()
+  void
+  LaplaceProblem<dim>::setup_system()
   {
     dof_handler.distribute_dofs(fe);
     locally_owned_dofs = dof_handler.locally_owned_dofs();
-    locally_relevant_dofs = DoFTools::extract_locally_relevant_dofs(dof_handler);
+    locally_relevant_dofs =
+      DoFTools::extract_locally_relevant_dofs(dof_handler);
 
-    locally_relevant_solution.reinit(locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
+    locally_relevant_solution.reinit(locally_owned_dofs,
+                                     locally_relevant_dofs,
+                                     mpi_communicator);
     system_rhs.reinit(locally_owned_dofs, mpi_communicator);
 
     constraints.clear();
     constraints.reinit(locally_owned_dofs, locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(dof_handler, constraints);
-    VectorTools::interpolate_boundary_values(mapping, dof_handler, 0, Functions::ZeroFunction<dim>(), constraints);
+    VectorTools::interpolate_boundary_values(
+      mapping, dof_handler, 0, Functions::ZeroFunction<dim>(), constraints);
     constraints.close();
 
     DynamicSparsityPattern dsp(locally_relevant_dofs);
     DoFTools::make_sparsity_pattern(dof_handler, dsp, constraints, false);
-    SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
+    SparsityTools::distribute_sparsity_pattern(dsp,
+                                               dof_handler.locally_owned_dofs(),
+                                               mpi_communicator,
+                                               locally_relevant_dofs);
 
-    system_matrix.reinit(locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
+    system_matrix.reinit(locally_owned_dofs,
+                         locally_owned_dofs,
+                         dsp,
+                         mpi_communicator);
   }
 
   template <int dim>
-  void LaplaceProblem<dim>::assemble_system()
+  void
+  LaplaceProblem<dim>::assemble_system()
   {
     const QGaussSimplex<dim> quadrature_formula(fe.degree + 1);
 
-    FEValues<dim> fe_values(mapping, fe, quadrature_formula,
+    FEValues<dim> fe_values(mapping,
+                            fe,
+                            quadrature_formula,
                             update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
+                              update_quadrature_points | update_JxW_values);
 
     const unsigned int dofs_per_cell = fe.n_dofs_per_cell();
-    const unsigned int n_q_points = quadrature_formula.size();
+    const unsigned int n_q_points    = quadrature_formula.size();
 
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
-    Vector<double> cell_rhs(dofs_per_cell);
+    Vector<double>     cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
     for (const auto &cell : dof_handler.active_cell_iterators() |
-                            IteratorFilters::LocallyOwnedCell())
-    {
-      cell_matrix = 0.;
-      cell_rhs = 0.;
-      fe_values.reinit(cell);
-
-      for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
+                              IteratorFilters::LocallyOwnedCell())
       {
-        const double rhs_value = std::sin(numbers::PI * fe_values.quadrature_point(q_point)[0]);
+        cell_matrix = 0.;
+        cell_rhs    = 0.;
+        fe_values.reinit(cell);
 
-        for (unsigned int i = 0; i < dofs_per_cell; ++i)
-        {
-          for (unsigned int j = 0; j < dofs_per_cell; ++j)
-            cell_matrix(i, j) += fe_values.shape_grad(i, q_point) *
-                                 fe_values.shape_grad(j, q_point) *
-                                 fe_values.JxW(q_point);
+        for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
+          {
+            const double rhs_value =
+              std::sin(numbers::PI * fe_values.quadrature_point(q_point)[0]);
 
-          cell_rhs(i) += rhs_value * fe_values.shape_value(i, q_point) * fe_values.JxW(q_point);
-        }
+            for (unsigned int i = 0; i < dofs_per_cell; ++i)
+              {
+                for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                  cell_matrix(i, j) += fe_values.shape_grad(i, q_point) *
+                                       fe_values.shape_grad(j, q_point) *
+                                       fe_values.JxW(q_point);
+
+                cell_rhs(i) += rhs_value * fe_values.shape_value(i, q_point) *
+                               fe_values.JxW(q_point);
+              }
+          }
+
+        cell->get_dof_indices(local_dof_indices);
+        constraints.distribute_local_to_global(
+          cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
       }
-
-      cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices,
-                                             system_matrix, system_rhs);
-    }
 
     system_matrix.compress(VectorOperation::add);
     system_rhs.compress(VectorOperation::add);
   }
 
   template <int dim>
-  void LaplaceProblem<dim>::solve()
+  void
+  LaplaceProblem<dim>::solve()
   {
-    LA::MPI::Vector completely_distributed_solution(locally_owned_dofs, mpi_communicator);
-    SolverControl solver_control(dof_handler.n_dofs(), 1e-12);
+    LA::MPI::Vector completely_distributed_solution(locally_owned_dofs,
+                                                    mpi_communicator);
+    SolverControl   solver_control(dof_handler.n_dofs(), 1e-12);
 
 #ifdef USE_PETSC_LA
     LA::SolverCG solver(solver_control, mpi_communicator);
@@ -200,7 +222,7 @@ namespace Step40
     LA::SolverCG solver(solver_control);
 #endif
 
-    LA::MPI::PreconditionAMG preconditioner;
+    LA::MPI::PreconditionAMG                 preconditioner;
     LA::MPI::PreconditionAMG::AdditionalData data;
 
 #ifdef USE_PETSC_LA
@@ -209,26 +231,37 @@ namespace Step40
 
     preconditioner.initialize(system_matrix, data);
 
-    check_solver_within_range(solver.solve(system_matrix, completely_distributed_solution,
-                                           system_rhs, preconditioner),
-                              solver_control.last_step(), 1, 9);
+    check_solver_within_range(solver.solve(system_matrix,
+                                           completely_distributed_solution,
+                                           system_rhs,
+                                           preconditioner),
+                              solver_control.last_step(),
+                              1,
+                              9);
 
     constraints.distribute(completely_distributed_solution);
     locally_relevant_solution = completely_distributed_solution;
 
-    Vector<double> difference(triangulation.n_active_cells());
+    Vector<double>           difference(triangulation.n_active_cells());
     const QGaussSimplex<dim> quadrature_formula(fe.degree + 1);
 
-    VectorTools::integrate_difference(mapping, dof_handler, locally_relevant_solution,
-                                      Functions::ZeroFunction<dim>(), difference,
-                                      quadrature_formula, VectorTools::L2_norm);
+    VectorTools::integrate_difference(mapping,
+                                      dof_handler,
+                                      locally_relevant_solution,
+                                      Functions::ZeroFunction<dim>(),
+                                      difference,
+                                      quadrature_formula,
+                                      VectorTools::L2_norm);
 
-    deallog << VectorTools::compute_global_error(triangulation, difference, VectorTools::L2_norm)
+    deallog << VectorTools::compute_global_error(triangulation,
+                                                 difference,
+                                                 VectorTools::L2_norm)
             << std::endl;
   }
 
   template <int dim>
-  void LaplaceProblem<dim>::output_results() const
+  void
+  LaplaceProblem<dim>::output_results() const
   {
     DataOut<dim> data_out;
     data_out.attach_dof_handler(dof_handler);
@@ -240,20 +273,28 @@ namespace Step40
     data_out.add_data_vector(subdomain, "subdomain");
 
     data_out.build_patches(mapping);
-    data_out.write_vtu_with_pvtu_record("./", "solution", 0, mpi_communicator, 2, 8);
+    data_out.write_vtu_with_pvtu_record(
+      "./", "solution", 0, mpi_communicator, 2, 8);
   }
 
   template <int dim>
-  void LaplaceProblem<dim>::run()
+  void
+  LaplaceProblem<dim>::run()
   {
-    deallog << "Running on " << Utilities::MPI::n_mpi_processes(mpi_communicator) << " MPI rank(s)..." << std::endl;
-    GMSH::read_partitioned_msh(triangulation, mpi_communicator,
-                               "/home/raksha/dealii/parallel_gmsh_codes/grids/add_meshes/unit-square");
-    deallog << "Triangulation has " << triangulation.n_active_cells() << " active cells." << std::endl;
+    deallog << "Running on "
+            << Utilities::MPI::n_mpi_processes(mpi_communicator)
+            << " MPI rank(s)..." << std::endl;
+    GMSH::read_partitioned_msh(triangulation,
+                               mpi_communicator,
+                               SOURCE_DIR "/../grids/add_meshes/unit-square");
+    deallog << "Triangulation has " << triangulation.n_active_cells()
+            << " active cells." << std::endl;
 
     setup_system();
-    deallog << "   Number of active cells:       " << triangulation.n_global_active_cells() << std::endl
-            << "   Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
+    deallog << "   Number of active cells:       "
+            << triangulation.n_global_active_cells() << std::endl
+            << "   Number of degrees of freedom: " << dof_handler.n_dofs()
+            << std::endl;
 
     assemble_system();
     solve();
@@ -263,33 +304,36 @@ namespace Step40
   }
 } // namespace Step40
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
   mpi_initlog();
 
   try
-  {
-    using namespace Step40;
-    LaplaceProblem<2> laplace_problem_2d;
-    laplace_problem_2d.run();
-  }
+    {
+      using namespace Step40;
+      LaplaceProblem<2> laplace_problem_2d;
+      laplace_problem_2d.run();
+    }
   catch (const std::exception &exc)
-  {
-    std::cerr << "\n\n----------------------------------------------------\n"
-              << "Exception on processing: " << exc.what() << "\n"
-              << "Aborting!\n"
-              << "----------------------------------------------------\n" << std::endl;
-    return 1;
-  }
+    {
+      std::cerr << "\n\n----------------------------------------------------\n"
+                << "Exception on processing: " << exc.what() << "\n"
+                << "Aborting!\n"
+                << "----------------------------------------------------\n"
+                << std::endl;
+      return 1;
+    }
   catch (...)
-  {
-    std::cerr << "\n\n----------------------------------------------------\n"
-              << "Unknown exception!\n"
-              << "Aborting!\n"
-              << "----------------------------------------------------\n" << std::endl;
-    return 1;
-  }
+    {
+      std::cerr << "\n\n----------------------------------------------------\n"
+                << "Unknown exception!\n"
+                << "Aborting!\n"
+                << "----------------------------------------------------\n"
+                << std::endl;
+      return 1;
+    }
 
   return 0;
 }

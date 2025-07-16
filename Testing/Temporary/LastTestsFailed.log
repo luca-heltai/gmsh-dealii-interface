@@ -1,2 +1,0 @@
-7:tests/load_grid_parallel.mpirun=2.release
-8:tests/load_grid_parallel.release
