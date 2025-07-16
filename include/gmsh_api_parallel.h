@@ -106,7 +106,7 @@ namespace GMSH
     auto &cell_infos = triangulation_description.cell_infos;
     cell_infos.resize(1);
 
-    std::map<std::size_t, unsigned int> node_tag_to_index;
+    std::map<std::size_t, unsigned int> node_tag_to_index
     vertices.resize(node_tags.size(), Point<spacedim>());
     for (unsigned int i = 0; i < node_tags.size(); ++i)
     {

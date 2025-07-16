@@ -12,3 +12,4 @@ Parallel version (not working yet):
 - [ ] read the `.msh` files with gmsh using the existing gmsh API in dealii separately in each process
 - [ ] merge the meshes in each process using the existing gmsh API
 - [ ] write a code that generates a parallel::fullydistributed::Triangulation from the merged mesh
+-- find out ghost cells which mpi share and also try to update it with ghost cells for completion 
