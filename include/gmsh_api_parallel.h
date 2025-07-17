@@ -93,7 +93,7 @@ namespace GMSH
         }
     }
 
-    std::vector<std::size_t> node_tags;
+    std::vector<std::size_t> node_tags;  //change
     std::vector<double> coords, parametric_coords;
     gmsh::model::mesh::getNodes(node_tags, coords, parametric_coords);
 
@@ -106,14 +106,20 @@ namespace GMSH
     auto &cell_infos = triangulation_description.cell_infos;
     cell_infos.resize(1);
 
-    std::map<std::size_t, unsigned int> node_tag_to_index
-    vertices.resize(node_tags.size(), Point<spacedim>());
+    std::map<std::size_t, unsigned int> node_tag_to_index;
+    //vertices.resize(node_tags.size(), Point<spacedim>());
+    vertices.resize(node_tags.size());
     for (unsigned int i = 0; i < node_tags.size(); ++i)
     {
         node_tag_to_index[node_tags[i]] = i;
         for (unsigned int d = 0; d < spacedim; ++d)
             vertices[i][d] = coords[3 * i + d];
     }
+
+    std::cout << "Rank " << rank << ": Created " << vertices.size() << " vertices" << std::endl;
+    std::cout << "Rank " << rank << ": Node tag map has " << node_tag_to_index.size() << " entries" << std::endl;
+    
+    
 
     for (const auto &e : entities)
     {
@@ -141,9 +147,26 @@ namespace GMSH
                     for (unsigned int v = 0; v < n_vertices; ++v)
                     {
                         const std::size_t node_tag = element_nodes[i][j * n_vertices + v];
-                        AssertThrow(node_tag_to_index.find(node_tag) != node_tag_to_index.end(),
+                        auto it = node_tag_to_index.find(node_tag);  // new line
+                        AssertThrow(it != node_tag_to_index.end(),
                                     ExcMessage("Node tag " + std::to_string(node_tag) + " not found in node list!"));
-                        cell.vertices[v] = node_tag_to_index[node_tag];
+                            const unsigned int vertex_index = it->second;  // new line      
+                            // CRITICAL: Validate vertex index is within bounds
+    AssertThrow(vertex_index < vertices.size(),
+    ExcMessage("Vertex index " + std::to_string(vertex_index) + 
+              " out of bounds (max: " + std::to_string(vertices.size()) + ")"));
+
+// Debug output to catch the exact problematic index
+if (vertex_index >= vertices.size() || vertex_index == numbers::invalid_unsigned_int)
+{
+std::cerr << "ERROR: Invalid vertex index " << vertex_index 
+      << " for node tag " << node_tag << std::endl;
+}
+
+cell.vertices[v] = vertex_index;   
+                        // AssertThrow(node_tag_to_index.find(node_tag) != node_tag_to_index.end(),
+                        //             ExcMessage("Node tag " + std::to_string(node_tag) + " not found in node list!"));
+                        // cell.vertices[v] = node_tag_to_index[node_tag];
                     }
 
                     cells.push_back(cell);
