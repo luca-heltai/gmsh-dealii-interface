@@ -1,0 +1,18 @@
+Rank 1: Local cells = 51, Global cells = 81
+Rank 1: Owned cells: 41, Ghost cells: 10
+Rank 1: Starting setup_system()
+Rank 1: DOFs distributed successfully
+Rank 0: Local cells = 50, Global cells = 81
+Rank 0: Owned cells: 40, Ghost cells: 10
+Rank 0: Starting setup_system()
+Rank 0: DOFs distributed successfully
+Rank 0: Locally owned DOFs: 55
+Rank 0: Locally relevant DOFs: 66
+Rank 1: Locally owned DOFs: 45
+Rank 1: Locally relevant DOFs: 67
+Rank 0: Solution vector reinitialized
+Rank 1: Solution vector reinitialized
+Rank 0: RHS vector reinitialized
+Rank 1: RHS vector reinitialized
+Rank 0: Constraints reinitialized
+Rank 1: Constraints reinitialized
