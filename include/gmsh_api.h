@@ -15,12 +15,13 @@
 #ifdef DEAL_II_GMSH_WITH_API
 #  include <gmsh.h>
 #endif
- 
-#include "debug_utils.h"  // new  
+
 #include <array>
 #include <map>
 #include <string>
 #include <vector>
+
+#include "debug_utils.h" // new
 
 
 DEAL_II_NAMESPACE_OPEN
@@ -270,4 +271,3 @@ DEAL_II_NAMESPACE_CLOSE
 //
 
 #endif // GMSH_API_H
-

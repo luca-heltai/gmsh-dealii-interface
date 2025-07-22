@@ -6,6 +6,7 @@
 #include <deal.II/distributed/fully_distributed_tria.h>
 
 #include <deal.II/grid/grid_out.h>
+
 #include <fstream>
 
 #include "gmsh_api_parallel.h"
@@ -14,7 +15,8 @@ using namespace dealii;
 
 
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
   MPILogInitAll                    mpilog;
@@ -29,24 +31,24 @@ int main(int argc, char **argv)
 
 
   GMSH::read_partitioned_msh(tria,
-                          mpi_comm,
-                          SOURCE_DIR "/../grids/add_meshes/unit-square");
+                             mpi_comm,
+                             SOURCE_DIR "/../grids/add_meshes/unit-square");
 
 
 
   deallog << "Rank " << rank << " owns " << tria.n_active_cells()
-         << " cells and " << tria.n_vertices() << " vertices." << std::endl;
+          << " cells and " << tria.n_vertices() << " vertices." << std::endl;
 
   unsigned int n_locally_owned_cells = 0;
-  unsigned int n_ghost_cells = 0;
+  unsigned int n_ghost_cells         = 0;
 
   for (const auto &cell : tria.active_cell_iterators())
-  {
+    {
       if (cell->is_locally_owned())
-          ++n_locally_owned_cells;
+        ++n_locally_owned_cells;
       else if (cell->is_ghost())
-          ++n_ghost_cells;
-  }
+        ++n_ghost_cells;
+    }
 
   deallog << "Rank " << rank << " owns " << n_locally_owned_cells
           << " cells and has " << n_ghost_cells << " ghost cells." << std::endl;

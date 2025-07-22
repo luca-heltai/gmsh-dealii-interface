@@ -2,12 +2,13 @@
 #ifndef DEBUG_UTILS_H
 #define DEBUG_UTILS_H
 
-constexpr bool running_in_debug_mode()
+constexpr bool
+running_in_debug_mode()
 {
 #ifdef DEBUG
-    return true;
+  return true;
 #else
-    return false;
+  return false;
 #endif
 }
 
