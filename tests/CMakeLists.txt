@@ -1,2 +1,3 @@
-INCLUDE_DIRECTORIES(${D2K_INCLUDE_DIRS})
+add_definitions(-DDEBUG)  
+# Automatically pick up other tests
 DEAL_II_PICKUP_TESTS()

@@ -109,6 +109,7 @@ FOREACH(_build_type ${_d2_build_types})
 
       ADD_LIBRARY(${_lib} SHARED ${_files})
       TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC DEAL_DIMENSION=${_dim})
+      TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
       IF(likwid_FOUND)
         TARGET_COMPILE_DEFINITIONS(${_lib} PUBLIC LIKWID_PERFMON)
@@ -180,6 +181,6 @@ elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile)
     MESSAGE("-- Configured Doxygen")
   endif(DOXYGEN_FOUND)
 endif()
-
+add_compile_definitions(SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_custom_target(indent ./scripts/indent WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ENABLE_TESTING()

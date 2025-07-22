@@ -1,0 +1,17 @@
+
+DEAL:0::After 4 refinements: 256 cells
+DEAL:0::Coarse cells: 144
+DEAL:0::Coarse vertices: 170
+DEAL:0::Coarse cell index to coarse cell id: 144
+DEAL:0::Cell infos: 1
+DEAL:0::Cell infos[0]: 144
+DEAL:0::Rank 0 owns 144 cells and 170 vertices.
+
+DEAL:1::After 4 refinements: 256 cells
+DEAL:1::Coarse cells: 144
+DEAL:1::Coarse vertices: 170
+DEAL:1::Coarse cell index to coarse cell id: 144
+DEAL:1::Cell infos: 1
+DEAL:1::Cell infos[0]: 144
+DEAL:1::Rank 1 owns 144 cells and 170 vertices.
+

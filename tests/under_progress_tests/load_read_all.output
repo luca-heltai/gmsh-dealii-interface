@@ -1,0 +1,16 @@
+File: /path/to/grids/new_meshes/test_grid_2_0.msh
+Number of cells: 50
+Number of vertices: 60
+File: /path/to/grids/new_meshes/test_grid_2_1.msh
+Number of cells: 46
+Number of vertices: 58
+File: /path/to/grids/new_meshes/test_grid_2_2.msh
+Number of cells: 48
+Number of vertices: 62
+Merging file: /path/to/grids/new_meshes/test_grid_2_0.msh
+Merging file: /path/to/grids/new_meshes/test_grid_2_1.msh
+Merging file: /path/to/grids/new_meshes/test_grid_2_2.msh
+Merged mesh saved to: /path/to/grids/new_meshes/test_grid_2_merged.msh
+Merged File: /path/to/grids/new_meshes/test_grid_2_merged.msh
+Number of cells in merged mesh: 144
+Number of vertices in merged mesh: 180
